@@ -17,7 +17,7 @@ module OmniAuth
 
       def callback_phase
         raise Samlr::SamlrError.new("Missing SAMLResponse") unless request.params['SAMLResponse']
-        saml_response = Samlr::Response.new(request.params['SAMLResponse'], fingerprint_or_cert)
+        saml_response = Samlr::Response.new(request.params['SAMLResponse'], options)
 
         saml_response.verify!
         @name_id = saml_response.name_id
@@ -26,7 +26,7 @@ module OmniAuth
       rescue Samlr::SamlrError => e
         msg = "Invalid SAML Ticket"
         msg << ": #{e.message}" if e.message
-        #logger.error "[SAML] Error: #{msg}"
+        Samlr.logger.error "[SAML] Error: #{msg}"
         ex = OmniAuth::Strategies::SAML::ValidationError.new(msg)
         ex.saml_response = response
         fail!(:invalid_ticket, ex)
@@ -45,14 +45,6 @@ module OmniAuth
       end
 
       extra { { :raw_info => @attributes } }
-
-      def fingerprint_or_cert
-        if options[:idp_cert_fingerprint]
-          {:fingerprint => options[:idp_cert_fingerprint]}
-        else
-          {:certificate => OpenSSL::X509::Certificate.new(options[:idp_cert])}
-        end
-      end
 
     end
   end
